@@ -11,6 +11,7 @@ import { VertexNormalsHelper } from 'three/addons/helpers/VertexNormalsHelper.js
 
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import Stats from 'three/addons/libs/stats.module.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 
 const clock = new THREE.Clock();
@@ -30,6 +31,8 @@ scene.add(pointLight0);
 const camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 50 );
 camera.position.set( 0, 1.6, 2.5 );
 
+
+
 const renderer = new THREE.WebGLRenderer({antialias: true});
 renderer.autoClear = false;
 renderer.setPixelRatio( window.devicePixelRatio );
@@ -41,28 +44,85 @@ document.body.appendChild( renderer.domElement );
 
 document.body.appendChild( VRButton.createButton( renderer ) );
 
+const orbitControls = new OrbitControls(camera, renderer.domElement);
+orbitControls.target.set(0, 1, -1);
+orbitControls.update()
 
-// console.log(XRButton)
-// console.log(XRControllerModelFactory)
-const worldY = new THREE.Vector3(0, 1, 0.0).normalize();
+// // console.log(XRButton)
+// // console.log(XRControllerModelFactory)
+// const worldY = new THREE.Vector3(0, 1, 0.0).normalize();
 
-const grid = new THREE.GridHelper(100, 100)
+const grid = new THREE.GridHelper(20, 20)
 scene.add(grid)
-// const grid2 = new THREE.GridHelper(10, 10)
-// grid2.lookAt(worldY)
-// scene.add(grid2)
-const sphereGeometry = new THREE.SphereGeometry(0.5, 128, 128);
-// const sphereMaterial = new THREE.MeshStandardMaterial({ color: 'red' });
-const sphereMaterial = new THREE.MeshStandardMaterial({ color: 'white' });
-const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-sphere.position.set(0, 2, -2);
-scene.add(sphere);
 
 
 
-// const vertexNormalsHelper = new VertexNormalsHelper(sphere, 0.1);
-// scene.add(vertexNormalsHelper)
+const axisX = new THREE.Vector3(1, 0, 0);
+const axisY = new THREE.Vector3(0, 1, 0);
+const axisXY = new THREE.Vector3(1, 1, 0).normalize();
+const axisZ = new THREE.Vector3(0, 0, 1);
 
+const radius = 1;
+const alpha = Math.PI/10;
+const beta = Math.PI/2 - alpha; 
+const a = Math.sin(alpha) * radius;
+const b = Math.cos(alpha) * radius;
+const c = Math.tan(beta) * b;
+
+const coneHeight = c ;
+const coneWidth = b ;
+
+const resolution = 32;
+
+const material = new THREE.MeshLambertMaterial( { color: 0xFFFFFF, wireframe: false } ); 
+
+const torusGeometry = new THREE.TorusGeometry( 0.075, 0.025, resolution, resolution ); 
+const torus = new THREE.Mesh( torusGeometry, material );
+
+torus.scale.z *= 0.5
+scene.add( torus );
+
+const coneGeometry = new THREE.ConeGeometry(coneWidth, coneHeight, resolution, 1);
+coneGeometry.translate(0, coneHeight / 2 + a, 0);
+coneGeometry.scale(0.036, 0.036, 0.036)
+coneGeometry.translate(0, 0.145, 0); 
+
+const sphereGeometry = new THREE.SphereGeometry(1, resolution, resolution);
+sphereGeometry.scale(0.036, 0.036, 0.036)
+sphereGeometry.translate(0, 0.145, 0);
+
+
+const spiral = new THREE.Group();
+scene.add(spiral);
+
+const nbSpokes = 6;
+const scaleFactor = 1.25
+const halfTurn = new THREE.Quaternion().setFromAxisAngle(axisZ, Math.PI);
+const quat = new THREE.Quaternion();
+
+for(let i = 0; i < nbSpokes; ++i) {
+	const spoke = new THREE.Group();
+	spiral.add(spoke);
+
+	const cone0 = new THREE.Mesh(coneGeometry, material);
+	const cone1 = new THREE.Mesh(coneGeometry, material);
+	const sphere0 = new THREE.Mesh(sphereGeometry, material);
+	const sphere1 = new THREE.Mesh(sphereGeometry, material);
+
+	cone0.applyQuaternion(halfTurn);
+	sphere0.applyQuaternion(halfTurn);
+
+	spoke.add(cone0, cone1, sphere0, sphere1);
+	quat.setFromAxisAngle(axisZ, (i-1)*Math.PI / 5.5);
+	spoke.applyQuaternion(quat);
+
+	spoke.scale.multiplyScalar(Math.pow(scaleFactor, i));
+	spoke.scale.z *= 0.5
+	spoke.scale.y *= 1.2
+}
+
+spiral.position.set(0, 1, -1)
+torus.position.set(0, 1, -1)
 
 
 const geometry = new THREE.BufferGeometry();
@@ -87,19 +147,20 @@ scene.add( controllerGrip2 );
 
 
 const parameters = {
-    scale: 1,
+    speed: 1,
     wireframe: false,
     toggleWireframe: function() {
         this.wireframe = !this.wireframe;
         console.log(this)
-        sphere.material.wireframe = this.wireframe;
+        // sphere.material.wireframe = this.wireframe;
+        material.wireframe = this.wireframe
     },
 };
 
-function onScaleChange() {
-    sphere.scale.set(parameters.scale, parameters.scale, parameters.scale)
+// function onScaleChange() {
+//     sphere.scale.set(parameters.scale, parameters.scale, parameters.scale)
 
-}
+// }
 
 // function onWireframeChange() {
 //     console.log("change")
@@ -109,7 +170,7 @@ function onScaleChange() {
 // }
 
 const gui = new GUI( { width: 300 } );
-gui.add( parameters, 'scale', 0.0, 2.0 ).onChange( onScaleChange );
+gui.add( parameters, 'speed', 0.0, 4.0 );
 // gui.add( parameters, 'wireframe').onChange(onWireframeChange);
 gui.add(parameters, "toggleWireframe").name("Toggle Wireframe").updateDisplay()
 gui.domElement.style.visibility = 'hidden';
@@ -157,6 +218,7 @@ function animate() {
     clock.getDelta();
     const time = clock.elapsedTime;
 
+    spiral.applyQuaternion(new THREE.Quaternion().setFromAxisAngle(axisXY, parameters.speed * 0.2* Math.PI / 100))
 
     renderer.render( scene, camera );
     stats.update();
