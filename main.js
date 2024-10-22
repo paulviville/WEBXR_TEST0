@@ -186,7 +186,7 @@ scene.add( controllerGrip2 );
 function handleControllerInput(inputSource) {
     // console.log(inputSource)
     // console.log(session.inputSource)
-    const gamepad = inputSource.gamepad;
+    const gamepad = inputSource?.gamepad;
     if (gamepad) {
         // Access each button (e.g., gamepad.buttons[0] is usually the trigger)
         for (let i = 0; i < gamepad.buttons.length; i++) {
