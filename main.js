@@ -44,9 +44,9 @@ document.body.appendChild( renderer.domElement );
 
 document.body.appendChild( VRButton.createButton( renderer ) );
 
-const orbitControls = new OrbitControls(camera, renderer.domElement);
-orbitControls.target.set(0, 1, -1);
-orbitControls.update()
+// const orbitControls = new OrbitControls(camera, renderer.domElement);
+// orbitControls.target.set(0, 1, -1);
+// orbitControls.update()
 
 // // console.log(XRButton)
 // // console.log(XRControllerModelFactory)
