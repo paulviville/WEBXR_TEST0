@@ -13,6 +13,28 @@ import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import Stats from 'three/addons/libs/stats.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
+// const logOutput = document.getElementById('Logs');
+// // let logOutput;
+
+// /// debugging in vr
+// (function() { 
+//     // document.addEventListener('DOMContentLoaded', () => {
+//         // logOutput = document.createElement('div')
+//         console.log = function(message) {
+//             logOutput.textContent += 'log: ' + message + '\n';
+//         }
+
+//         window.onerror = function(message, source, lineno, colno, error) {
+//             logOutput.textContent += 'Error: ' + message + '\n' +
+//                                     'Source: ' + source + '\n' +
+//                                     'Line: ' + lineno + '\n' +
+//                                     'Column: ' + colno + '\n' +
+//                                     (error ? 'Error object: ' + error : '') + '\n\n';
+//         };
+//     // });
+// })()
+
+let activeVR = false;
 
 const clock = new THREE.Clock();
 
@@ -44,12 +66,25 @@ document.body.appendChild( renderer.domElement );
 
 document.body.appendChild( VRButton.createButton( renderer ) );
 
+
+// // Listen for VR session start and end
+// renderer.xr.addEventListener('sessionstart', () => {
+//     console.log('VR session started');
+//     activeVR = true; // Enable controller input when VR is active
+// });
+
+// renderer.xr.addEventListener('sessionend', () => {
+//     console.log('VR session ended');
+//     activeVR = false; // Disable controller input when VR is inactive
+// });
+
+
 // const orbitControls = new OrbitControls(camera, renderer.domElement);
 // orbitControls.target.set(0, 1, -1);
 // orbitControls.update()
 
-// // console.log(XRButton)
-// // console.log(XRControllerModelFactory)
+// console.log(XRButton)
+// console.log(XRControllerModelFactory)
 // const worldY = new THREE.Vector3(0, 1, 0.0).normalize();
 
 const grid = new THREE.GridHelper(20, 20)
@@ -146,6 +181,116 @@ controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGri
 scene.add( controllerGrip2 );
 
 
+
+
+function handleControllerInput(inputSource) {
+    // console.log(inputSource)
+    // console.log(session.inputSource)
+    const gamepad = inputSource.gamepad;
+    if (gamepad) {
+        // Access each button (e.g., gamepad.buttons[0] is usually the trigger)
+        for (let i = 0; i < gamepad.buttons.length; i++) {
+            const button = gamepad.buttons[i];
+
+            if (button.pressed) {
+                console.log(`Button ${i} is pressed on controller ${inputSource.handedness}`);
+
+                if(inputSource.handedness == "right"){
+                    // console.log(inputSource)
+                    if(i == 4) {
+                        const forward = new THREE.Vector3();
+                        controller2.getWorldDirection(forward);
+                        forward.normalize()
+                        console.log(forward);
+                        torus.position.add(forward.multiplyScalar(0.1))
+                    }
+
+                        // torus.scale.add(new THREE.Vector3(0.1, 0.1, 0.1))
+                    if(i == 5){
+                        const forward = new THREE.Vector3();
+                        controller2.getWorldDirection(forward);
+                        forward.normalize()
+                        console.log(forward);
+                        torus.position.sub(forward.multiplyScalar(0.1))
+                    }
+                }
+                if(inputSource.handedness == "left"){
+                    if(i == 4)
+                        torus.scale.add(new THREE.Vector3(0.1, 0.1, 0.1))
+                    if(i == 5)
+                        torus.scale.sub(new THREE.Vector3(0.1, 0.1, 0.1))
+                }
+                // console.log(button)
+                // Example: Change cube color based on trigger button press
+                // if (i === 0) { // Usually trigger button
+                //     torus.material.color.set(0xff0000); // Change to red when trigger is pressed
+                // } else if (i === 1) { // Grip button
+                //     torus.material.color.set(0x0000ff); // Change to blue when grip is pressed
+                // }
+            }
+        }
+
+        // Access axes for thumbsticks or trackpads (usually two axes)
+        const axes = gamepad.axes;
+        if (axes.length > 0) {
+            // console.log(`Controller  axes:`, axes);
+            // Example: Move cube along x-axis with thumbstick
+            torus.position.x += axes[2] * 0.1;
+            torus.position.z += axes[3] * 0.1;
+        }
+    }
+}
+
+// Handle standard select and squeeze events
+controller1.addEventListener('selectstart', () => {
+    console.log('Controller 1: Trigger pressed');
+    controller1.children[0].material.color.set(0xff0000)
+});
+controller1.addEventListener('selectend', () => {
+    console.log('Controller 1: Trigger released');
+    controller1.children[0].material.color.set(0xffffff)
+});
+controller1.addEventListener('squeezestart', () => {
+    console.log('Controller 1: Grip pressed');
+    torus.material.color.set(0x0000ff); // Reset color to green when grip is pressed
+});
+controller1.addEventListener('squeezeend', () => {
+    console.log('Controller 2: Grip released');
+    torus.material.color.set(0xffffff); // Reset color to green when grip is pressed
+});
+
+controller2.addEventListener('squeezestart', () => {
+    console.log('Controller 2: Grip pressed');
+    torus.material.color.set(0x00ff00); // Reset color to green when grip is pressed
+});
+controller2.addEventListener('squeezeend', () => {
+    console.log('Controller 2: Grip released');
+    torus.material.color.set(0xffffff); // Reset color to green when grip is pressed
+});
+
+
+controller2.addEventListener('selectstart', () => {
+    console.log('Controller 1: Trigger pressed');
+    controller2.children[0].material.color.set(0xff0000)
+});
+controller2.addEventListener('selectend', () => {
+    console.log('Controller 1: Trigger released');
+    controller2.children[0].material.color.set(0xffffff)
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const parameters = {
     speed: 1,
     wireframe: false,
@@ -203,6 +348,25 @@ statsMesh.rotation.y = Math.PI / 4;
 statsMesh.scale.setScalar( 2.5 );
 group.add( statsMesh );
 
+// logOutput.style.width = '80px';
+// // logOutput.style.height = '48px';
+// let logMesh = new HTMLMesh(logOutput);
+
+// logMesh.position.x = - 0.75;
+// logMesh.position.y = 1.2;
+// logMesh.position.z = - 0.6;
+// logMesh.rotation.y = Math.PI / 4;
+// logMesh.scale.setScalar( 2.5 );
+// group.add( logMesh );
+
+
+
+// console.log("test")
+// logMesh.material.map.update()
+
+
+
+
 
 
 
@@ -225,6 +389,16 @@ function animate() {
 
     statsMesh.material.map.update();
 
+//    if(activeVR) handleControllerInput(controller1)
+    // handleControllerInput(controller2)
+    const session = renderer.xr.getSession();
+    if (session?.inputSources.length) {
+        // Access the current session and pass it to handleControllerInput
+        // console.log(session)
+
+        handleControllerInput(session.inputSources[0]);
+        handleControllerInput(session.inputSources[1]);
+    }
 }
 
 renderer.setAnimationLoop( animate );
